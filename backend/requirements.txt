@@ -1,6 +1,8 @@
 fastapi
 uvicorn
 python-multipart
-sentence-transformers
+onnxruntime
+tokenizers
+numpy
 pypdf
 python-docx
