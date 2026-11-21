@@ -1,0 +1,5 @@
+.venv/
+__pycache__/
+*.pyc
+backend/my_trained_model/
+backend/model_fp32.onnx

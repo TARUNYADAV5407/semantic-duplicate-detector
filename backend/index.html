@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SemantiCheck AI — Semantic Duplicate Detection Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #070b14;
+      --bg-grid: rgba(148, 163, 184, 0.06);
+      --sidebar: rgba(13, 19, 33, 0.85);
+      --surface: rgba(17, 25, 44, 0.72);
+      --surface-solid: #11192c;
+      --surface-elevated: rgba(30, 41, 69, 0.55);
+      --border: rgba(148, 163, 184, 0.14);
+      --border-strong: rgba(129, 140, 248, 0.35);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #6366f1;
+      --primary-glow: rgba(99, 102, 241, 0.35);
+      --accent: #06b6d4;
+      --danger: #f43f5e;
+      --danger-soft: rgba(244, 63, 94, 0.14);
+      --warning: #f59e0b;
+      --warning-soft: rgba(245, 158, 11, 0.14);
+      --success: #10b981;
+      --success-soft: rgba(16, 185, 129, 0.14);
+      --radius: 16px;
+      --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    [data-theme="light"] {
+      --bg: #f4f7fb;
+      --bg-grid: rgba(15, 23, 42, 0.045);
+      --sidebar: rgba(255, 255, 255, 0.9);
+      --surface: rgba(255, 255, 255, 0.86);
+      --surface-solid: #ffffff;
+      --surface-elevated: #f8fafc;
+      --border: rgba(15, 23, 42, 0.09);
+      --border-strong: rgba(79, 70, 229, 0.35);
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --primary: #4f46e5;
+      --primary-glow: rgba(79, 70, 229, 0.22);
+      --accent: #0891b2;
+      --danger: #e11d48;
+      --danger-soft: rgba(225, 29, 72, 0.1);
+      --warning: #d97706;
+      --warning-soft: rgba(217, 119, 6, 0.1);
+      --success: #059669;
+      --success-soft: rgba(5, 150, 105, 0.1);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg);
+      background-image:
+        radial-gradient(circle at 15% 10%, rgba(99, 102, 241, 0.16), transparent 35%),
+        radial-gradient(circle at 85% 85%, rgba(6, 182, 212, 0.12), transparent 35%),
+        radial-gradient(var(--bg-grid) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 24px 24px;
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      overflow-x: hidden;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 268px;
+      background: var(--sidebar);
+      backdrop-filter: blur(18px);
+      border-right: 1px solid var(--border);
+      padding: 1.5rem 1.1rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: fixed;
+      inset: 0 auto 0 0;
+      z-index: 30;
+    }
+    .brand { display: flex; align-items: center; gap: 0.85rem; padding: 0 0.4rem 1.5rem; border-bottom: 1px solid var(--border); }
+    .brand-logo {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: linear-gradient(135deg, #6366f1, #06b6d4);
+      display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 1.05rem;
+      box-shadow: 0 0 20px var(--primary-glow);
+    }
+    .brand-title { font-weight: 800; font-size: 1.1rem; letter-spacing: -0.02em; }
+    .brand-sub { font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono); }
+
+    .nav-group { margin-top: 1.4rem; display: flex; flex-direction: column; gap: 0.35rem; }
+    .nav-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); padding: 0 0.75rem 0.4rem; font-weight: 700; }
+    .nav-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.72rem 0.85rem; border-radius: 11px; border: 1px solid transparent;
+      background: transparent; color: var(--text-muted); font-weight: 600; font-size: 0.9rem;
+      cursor: pointer; transition: all 0.2s; text-align: left; width: 100%; font-family: inherit;
+    }
+    .nav-item:hover { background: var(--surface-elevated); color: var(--text); }
+    .nav-item.active {
+      background: linear-gradient(90deg, rgba(99, 102, 241, 0.18), rgba(6, 182, 212, 0.06));
+      border-color: var(--border-strong); color: var(--text);
+    }
+    .nav-left { display: flex; align-items: center; gap: 0.7rem; }
+    .nav-badge {
+      font-family: var(--font-mono); font-size: 0.72rem; padding: 0.15rem 0.48rem;
+      border-radius: 999px; background: var(--surface-elevated); color: var(--text-muted);
+    }
+    .nav-item.active .nav-badge { background: var(--primary); color: #fff; }
+
+    .sidebar-footer { display: flex; flex-direction: column; gap: 0.75rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+    .engine-card {
+      background: var(--surface-elevated); border: 1px solid var(--border);
+      border-radius: 12px; padding: 0.8rem; font-size: 0.78rem;
+    }
+    .status-row { display: flex; align-items: center; gap: 0.5rem; font-weight: 700; margin-bottom: 0.3rem; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warning); }
+    .dot.online { background: var(--success); box-shadow: 0 0 10px var(--success); }
+    .dot.offline { background: var(--danger); }
+    .model-tag { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-muted); }
+
+    /* Main Content */
+    .main {
+      margin-left: 268px;
+      flex: 1;
+      padding: 1.75rem 2.25rem 3rem;
+      max-width: 1400px;
+      width: calc(100% - 268px);
+    }
+
+    .topbar {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 1.75rem; flex-wrap: wrap; gap: 1rem;
+    }
+    .page-title h1 { font-size: 1.65rem; font-weight: 800; letter-spacing: -0.025em; }
+    .page-title p { color: var(--text-muted); font-size: 0.9rem; margin-top: 0.15rem; }
+    .top-actions { display: flex; gap: 0.65rem; align-items: center; }
+
+    .btn {
+      padding: 0.6rem 1.05rem; border-radius: 10px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--text); font-weight: 600; font-size: 0.85rem;
+      cursor: pointer; display: inline-flex; align-items: center; gap: 0.45rem;
+      transition: all 0.2s; font-family: inherit; backdrop-filter: blur(12px);
+    }
+    .btn:hover { border-color: var(--border-strong); transform: translateY(-1px); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), #4f46e5);
+      border: none; color: #fff; padding: 0.85rem 1.5rem; font-size: 0.95rem; font-weight: 700;
+      box-shadow: 0 8px 24px -6px var(--primary-glow);
+    }
+    .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    /* Glass Panels & Bento */
+    .panel {
+      background: var(--surface);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.4rem;
+      box-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.25);
+    }
+    .studio-grid { display: grid; grid-template-columns: 1.65fr 1fr; gap: 1.4rem; align-items: start; }
+    @media (max-width: 1024px) {
+      .sidebar { position: static; width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
+      body { flex-direction: column; }
+      .main { margin-left: 0; width: 100%; padding: 1.25rem; }
+      .studio-grid { grid-template-columns: 1fr; }
+    }
+
+    /* Input Tabs */
+    .panel-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.6rem; }
+    .panel-title { font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; }
+    .seg-tabs { display: inline-flex; background: var(--surface-elevated); padding: 4px; border-radius: 10px; border: 1px solid var(--border); }
+    .seg-btn {
+      border: none; background: transparent; color: var(--text-muted); padding: 0.45rem 0.95rem;
+      border-radius: 7px; font-weight: 600; font-size: 0.85rem; cursor: pointer; font-family: inherit;
+    }
+    .seg-btn.active { background: var(--primary); color: #fff; }
+
+    textarea {
+      width: 100%; height: 270px; padding: 1rem; border-radius: 12px;
+      border: 1px solid var(--border); background: var(--surface-elevated); color: var(--text);
+      font-family: var(--font-sans); font-size: 0.93rem; line-height: 1.6; resize: vertical; outline: none;
+    }
+    textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow); }
+    .editor-meta {
+      display: flex; justify-content: space-between; margin-top: 0.6rem;
+      font-family: var(--font-mono); font-size: 0.76rem; color: var(--text-muted);
+    }
+
+    /* Dropzone */
+    .dropzone {
+      height: 270px; border: 2px dashed var(--border-strong); border-radius: 12px;
+      background: var(--surface-elevated); display: flex; flex-direction: column;
+      align-items: center; justify-content: center; text-align: center; padding: 1.5rem;
+      cursor: pointer; transition: all 0.25s;
+    }
+    .dropzone.dragover { background: rgba(99, 102, 241, 0.14); border-color: var(--accent); transform: scale(0.99); }
+    .dropzone input { display: none; }
+    .drop-icon {
+      width: 56px; height: 56px; border-radius: 14px; background: rgba(99, 102, 241, 0.15);
+      color: var(--primary); display: grid; place-items: center; font-size: 1.6rem; margin-bottom: 0.8rem;
+    }
+    .file-chip {
+      margin-top: 1rem; display: inline-flex; align-items: center; gap: 0.6rem;
+      padding: 0.45rem 0.9rem; border-radius: 999px; background: var(--primary); color: #fff;
+      font-size: 0.82rem; font-weight: 600;
+    }
+    .file-chip button { background: none; border: none; color: #fff; cursor: pointer; font-weight: 800; font-size: 1rem; }
+
+    /* Config Panel */
+    .config-block { margin-bottom: 1.35rem; }
+    .thresh-display { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.5rem; }
+    .thresh-num { font-family: var(--font-mono); font-size: 1.6rem; font-weight: 800; color: var(--accent); }
+    input[type="range"] { width: 100%; accent-color: var(--primary); cursor: pointer; }
+    .preset-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-top: 0.65rem; }
+    .preset-chip {
+      padding: 0.45rem; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--surface-elevated); color: var(--text-muted); font-size: 0.76rem;
+      font-weight: 700; cursor: pointer; transition: all 0.2s; font-family: inherit;
+    }
+    .preset-chip:hover, .preset-chip.active { border-color: var(--primary); color: var(--text); background: rgba(99, 102, 241, 0.15); }
+
+    /* Pipeline Steps */
+    .pipeline { display: flex; flex-direction: column; gap: 0.55rem; margin: 1.25rem 0; }
+    .pipe-step {
+      display: flex; align-items: center; gap: 0.7rem; padding: 0.55rem 0.75rem;
+      border-radius: 9px; background: var(--surface-elevated); border: 1px solid var(--border);
+      font-size: 0.8rem; color: var(--text-muted); transition: all 0.25s;
+    }
+    .pipe-step.active { border-color: var(--accent); color: var(--text); background: rgba(6, 182, 212, 0.1); }
+    .pipe-step.done { border-color: var(--success); color: var(--success); }
+    .pipe-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+
+    /* KPI Row */
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.4rem; }
+    @media (max-width: 820px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+    .kpi-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 1.2rem; position: relative; overflow: hidden;
+    }
+    .kpi-card::after {
+      content: ""; position: absolute; inset: 0 0 auto 0; height: 3px;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+    }
+    .kpi-card.danger::after { background: var(--danger); }
+    .kpi-card.success::after { background: var(--success); }
+    .kpi-label { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 700; }
+    .kpi-val { font-family: var(--font-mono); font-size: 2rem; font-weight: 800; margin-top: 0.3rem; }
+
+    /* Charts */
+    .charts-grid { display: grid; grid-template-columns: 1fr 1.4fr; gap: 1.4rem; }
+    @media (max-width: 900px) { .charts-grid { grid-template-columns: 1fr; } }
+    .chart-wrap { position: relative; height: 270px; width: 100%; }
+
+    /* Duplicate Pairs */
+    .filter-bar { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1.2rem; }
+    .search-box, .select-box {
+      padding: 0.6rem 0.9rem; border-radius: 10px; border: 1px solid var(--border);
+      background: var(--surface-elevated); color: var(--text); font-family: inherit; font-size: 0.86rem; outline: none;
+    }
+    .search-box { flex: 1; min-width: 220px; }
+    .search-box:focus, .select-box:focus { border-color: var(--primary); }
+
+    .pair-card {
+      background: var(--surface-elevated); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1.2rem; margin-bottom: 1rem;
+    }
+    .pair-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.9rem; gap: 1rem; flex-wrap: wrap; }
+    .sim-pill {
+      font-family: var(--font-mono); font-size: 0.8rem; font-weight: 700;
+      padding: 0.28rem 0.75rem; border-radius: 999px;
+    }
+    .sim-pill.high { background: var(--danger-soft); color: var(--danger); }
+    .sim-pill.med { background: var(--warning-soft); color: var(--warning); }
+    .sim-pill.low { background: rgba(99, 102, 241, 0.16); color: var(--primary); }
+
+    .bar-track { flex: 1; max-width: 240px; height: 8px; background: var(--border); border-radius: 999px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 999px; }
+
+    .diff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 760px) { .diff-grid { grid-template-columns: 1fr; } }
+    .q-card {
+      background: var(--surface-solid); border: 1px solid var(--border);
+      border-radius: 10px; padding: 0.95rem; font-size: 0.92rem; line-height: 1.55;
+    }
+    .q-meta {
+      font-family: var(--font-mono); font-size: 0.72rem; font-weight: 700;
+      display: inline-block; padding: 0.16rem 0.5rem; border-radius: 5px; margin-bottom: 0.5rem;
+      background: rgba(16, 185, 129, 0.14); color: var(--success);
+    }
+    .q-meta.dup { background: var(--danger-soft); color: var(--danger); }
+
+    /* Cleaned Paper */
+    .paper-sheet { display: flex; flex-direction: column; gap: 0.7rem; }
+    .paper-row {
+      display: flex; gap: 1rem; align-items: flex-start; padding: 0.95rem 1.1rem;
+      background: var(--surface-elevated); border: 1px solid var(--border); border-radius: 11px;
+    }
+    .q-num {
+      font-family: var(--font-mono); font-size: 0.78rem; font-weight: 700;
+      min-width: 38px; height: 28px; border-radius: 7px; display: grid; place-items: center;
+      background: rgba(99, 102, 241, 0.16); color: var(--primary);
+    }
+
+    /* History */
+    .history-item {
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;
+      padding: 1rem 1.2rem; border-radius: 12px; background: var(--surface-elevated);
+      border: 1px solid var(--border); margin-bottom: 0.8rem;
+    }
+
+    .empty-box {
+      text-align: center; padding: 3rem 1.5rem; color: var(--text-muted);
+      border: 1px dashed var(--border); border-radius: 12px;
+    }
+
+    .hidden { display: none !important; }
+    .spinner {
+      width: 16px; height: 16px; border: 2.5px solid rgba(255,255,255,0.3);
+      border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .toast {
+      position: fixed; bottom: 24px; right: 24px; z-index: 60;
+      background: var(--surface-solid); color: var(--text); border: 1px solid var(--border-strong);
+      padding: 0.8rem 1.25rem; border-radius: 12px; font-weight: 600; font-size: 0.88rem;
+      box-shadow: 0 14px 30px rgba(0,0,0,0.35); transform: translateY(100px); opacity: 0; transition: all 0.25s;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.error { border-color: var(--danger); color: var(--danger); }
+
+    @media print {
+      body { background: #fff; color: #000; display: block; }
+      .sidebar, .topbar, .toast, #view-studio, #view-duplicates, #view-analytics, #view-history, .export-bar { display: none !important; }
+      .main { margin: 0; width: 100%; padding: 0; }
+      #view-cleaned { display: block !important; }
+      .panel { border: none; box-shadow: none; background: #fff; padding: 0; }
+      .paper-row { border: none; background: transparent; padding: 0.45rem 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div>
+      <div class="brand">
+        <div class="brand-logo">SC</div>
+        <div>
+          <div class="brand-title">SemantiCheck</div>
+          <div class="brand-sub">NLP Studio v2.0</div>
+        </div>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-label">Workspace</div>
+        <button class="nav-item active" data-view="studio" onclick="switchView('studio')">
+          <span class="nav-left">⚡ Analyzer Studio</span>
+        </button>
+        <button class="nav-item" data-view="duplicates" onclick="switchView('duplicates')">
+          <span class="nav-left">🔍 Duplicate Pairs</span>
+          <span class="nav-badge" id="badgePairs">0</span>
+        </button>
+        <button class="nav-item" data-view="analytics" onclick="switchView('analytics')">
+          <span class="nav-left">📊 Visual Analytics</span>
+        </button>
+        <button class="nav-item" data-view="cleaned" onclick="switchView('cleaned')">
+          <span class="nav-left">✨ Cleaned Paper</span>
+          <span class="nav-badge" id="badgeUnique">0</span>
+        </button>
+        <button class="nav-item" data-view="history" onclick="switchView('history')">
+          <span class="nav-left">🕒 Scan History</span>
+          <span class="nav-badge" id="badgeHistory">0</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="engine-card">
+        <div class="status-row">
+          <span class="dot" id="apiDot"></span>
+          <span id="apiText">Checking Backend...</span>
+        </div>
+        <div class="model-tag">Fine-Tuned MiniLM (STS-B) · 384-d</div>
+      </div>
+      <button class="btn" style="width:100%; justify-content:center;" id="themeBtn" onclick="toggleTheme()">
+        ☀️ Switch to Light Mode
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Workspace -->
+  <main class="main">
+    <header class="topbar">
+      <div class="page-title">
+        <h1 id="viewHeading">Analyzer Studio</h1>
+        <p id="viewSub">Upload a question paper or paste text to detect paraphrased semantic duplicates.</p>
+      </div>
+      <div class="top-actions">
+        <button class="btn" onclick="loadSample()">⚡ Load Demo Paper</button>
+        <button class="btn" onclick="checkApiHealth()">🔄 Ping API</button>
+      </div>
+    </header>
+
+    <!-- VIEW 1: STUDIO -->
+    <section id="view-studio">
+      <div class="studio-grid">
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Question Paper Input</div>
+            <div class="seg-tabs">
+              <button class="seg-btn active" id="tabText" onclick="switchInputMode('text')">Paste Text</button>
+              <button class="seg-btn" id="tabFile" onclick="switchInputMode('file')">Upload File</button>
+            </div>
+          </div>
+
+          <div id="textPane">
+            <textarea id="questionInput" oninput="updateEditorStats()" placeholder="Q1. What is overfitting in machine learning?&#10;Q2. Explain how overfitting occurs in ML models.&#10;Q3. Define gradient descent optimization."></textarea>
+            <div class="editor-meta">
+              <span id="lineCount">0 lines detected</span>
+              <span id="wordCount">0 words</span>
+            </div>
+          </div>
+
+          <div id="filePane" class="hidden">
+            <div class="dropzone" id="dropzone" onclick="document.getElementById('fileInput').click()">
+              <input type="file" id="fileInput" accept=".pdf,.docx,.txt" />
+              <div class="drop-icon">📄</div>
+              <div style="font-weight:700; font-size:1rem;">Drop your question paper here</div>
+              <div style="color:var(--text-muted); font-size:0.84rem; margin-top:0.25rem;">Supports PDF, Word (.docx), and Plain Text (.txt)</div>
+              <div id="fileChip" class="file-chip hidden" onclick="event.stopPropagation()">
+                <span id="fileName"></span>
+                <button onclick="clearFile()">×</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">NLP Engine Controls</div>
+          </div>
+
+          <div class="config-block">
+            <div class="thresh-display">
+              <span style="font-size:0.86rem; font-weight:600; color:var(--text-muted);">Cosine Similarity Threshold</span>
+              <span class="thresh-num" id="threshDisplay">75%</span>
+            </div>
+            <input type="range" id="threshold" min="0.50" max="0.95" step="0.01" value="0.75" oninput="setThresholdUI(this.value)" />
+            <div class="preset-row">
+              <button class="preset-chip" onclick="applyPreset(0.65, this)">Loose · 65%</button>
+              <button class="preset-chip active" onclick="applyPreset(0.75, this)">Balanced · 75%</button>
+              <button class="preset-chip" onclick="applyPreset(0.85, this)">Strict · 85%</button>
+            </div>
+          </div>
+
+          <div class="pipeline">
+            <div class="pipe-step" id="step1"><span class="pipe-dot"></span> 1. Question Extraction & Cleaning</div>
+            <div class="pipe-step" id="step2"><span class="pipe-dot"></span> 2. Fine-Tuned Semantic Embeddings (384-d)</div>
+            <div class="pipe-step" id="step3"><span class="pipe-dot"></span> 3. Pairwise Cosine Similarity Matrix</div>
+            <div class="pipe-step" id="step4"><span class="pipe-dot"></span> 4. Deduplication & Report Generation</div>
+          </div>
+
+          <button class="btn btn-primary" style="width:100%; justify-content:center;" id="analyzeBtn" onclick="runAnalysis()">
+            <span>🚀 Run Semantic Analysis</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 2: DUPLICATES -->
+    <section id="view-duplicates" class="hidden">
+      <div class="kpi-grid">
+        <div class="kpi-card"><div class="kpi-label">Total Questions</div><div class="kpi-val" id="kpiTotal">0</div></div>
+        <div class="kpi-card danger"><div class="kpi-label">Duplicate Pairs</div><div class="kpi-val" id="kpiPairs">0</div></div>
+        <div class="kpi-card success"><div class="kpi-label">Unique Retained</div><div class="kpi-val" id="kpiUnique">0</div></div>
+        <div class="kpi-card"><div class="kpi-label">Redundancy Rate</div><div class="kpi-val" id="kpiRate">0%</div></div>
+      </div>
+
+      <div class="panel">
+        <div class="filter-bar">
+          <input type="text" class="search-box" id="pairSearch" placeholder="Search within detected duplicate questions..." oninput="renderPairs()" />
+          <select class="select-box" id="pairSort" onchange="renderPairs()">
+            <option value="sim-desc">Sort: Highest Similarity</option>
+            <option value="sim-asc">Sort: Lowest Similarity</option>
+            <option value="order">Sort: Question Order</option>
+          </select>
+        </div>
+        <div id="pairsContainer"></div>
+      </div>
+    </section>
+
+    <!-- VIEW 3: ANALYTICS -->
+    <section id="view-analytics" class="hidden">
+      <div class="charts-grid">
+        <div class="panel">
+          <div class="panel-head"><div class="panel-title">Paper Composition</div></div>
+          <div class="chart-wrap"><canvas id="compChart"></canvas></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><div class="panel-title">Similarity Score Distribution</div></div>
+          <div class="chart-wrap"><canvas id="distChart"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 4: CLEANED PAPER -->
+    <section id="view-cleaned" class="hidden">
+      <div class="panel">
+        <div class="panel-head export-bar">
+          <div class="panel-title">Deduplicated Question Paper</div>
+          <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+            <button class="btn" onclick="copyCleaned()">📋 Copy</button>
+            <button class="btn" onclick="downloadTxt()">⬇️ Export .TXT</button>
+            <button class="btn" onclick="downloadJson()">📦 Export .JSON</button>
+            <button class="btn" onclick="window.print()">🖨️ Print / PDF</button>
+          </div>
+        </div>
+        <div class="paper-sheet" id="cleanedContainer"></div>
+      </div>
+    </section>
+
+    <!-- VIEW 5: HISTORY -->
+    <section id="view-history" class="hidden">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Recent Local Scans</div>
+          <button class="btn" onclick="clearHistory()">🗑️ Clear History</button>
+        </div>
+        <div id="historyContainer"></div>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API_BASE = "";
+    let inputMode = "text";
+    let selectedFile = null;
+    let currentData = null;
+    let compChart = null;
+    let distChart = null;
+
+    const VIEW_META = {
+      studio: ["Analyzer Studio", "Upload a question paper or paste text to detect paraphrased semantic duplicates."],
+      duplicates: ["Duplicate Inspector", "Review side-by-side semantic matches flagged above your similarity threshold."],
+      analytics: ["Visual Analytics", "Explore redundancy metrics and similarity score distributions."],
+      cleaned: ["Cleaned Question Paper", "Export or print your deduplicated question paper."],
+      history: ["Scan History", "Reload previous analyses saved locally in your browser."]
+    };
+
+    // Init
+    (function init() {
+      const savedTheme = localStorage.getItem("sc_theme") || "dark";
+      applyTheme(savedTheme);
+      checkApiHealth();
+      renderHistory();
+    })();
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute("data-theme", theme);
+      localStorage.setItem("sc_theme", theme);
+      document.getElementById("themeBtn").innerText = theme === "dark" ? "☀️ Switch to Light Mode" : "🌙 Switch to Dark Mode";
+      if (currentData) renderCharts(currentData);
+    }
+
+    function toggleTheme() {
+      const curr = document.documentElement.getAttribute("data-theme");
+      applyTheme(curr === "dark" ? "light" : "dark");
+    }
+
+    function switchView(view) {
+      document.querySelectorAll("main > section").forEach(s => s.classList.add("hidden"));
+      document.getElementById(`view-${view}`).classList.remove("hidden");
+      document.querySelectorAll(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.view === view));
+      document.getElementById("viewHeading").innerText = VIEW_META[view][0];
+      document.getElementById("viewSub").innerText = VIEW_META[view][1];
+      if (view === "analytics" && currentData) renderCharts(currentData);
+    }
+
+    function switchInputMode(mode) {
+      inputMode = mode;
+      document.getElementById("tabText").classList.toggle("active", mode === "text");
+      document.getElementById("tabFile").classList.toggle("active", mode === "file");
+      document.getElementById("textPane").classList.toggle("hidden", mode !== "text");
+      document.getElementById("filePane").classList.toggle("hidden", mode !== "file");
+    }
+
+    async function checkApiHealth() {
+      const dot = document.getElementById("apiDot");
+      const txt = document.getElementById("apiText");
+      try {
+        const res = await fetch(`${API_BASE}/openapi.json`);
+        if (res.ok) {
+          dot.className = "dot online";
+          txt.innerText = "FastAPI Online";
+          return;
+        }
+      } catch (_) {}
+      dot.className = "dot offline";
+      txt.innerText = "Backend Offline";
+    }
+
+    function setThresholdUI(val) {
+      document.getElementById("threshDisplay").innerText = Math.round(val * 100) + "%";
+    }
+
+    function applyPreset(val, el) {
+      document.getElementById("threshold").value = val;
+      setThresholdUI(val);
+      document.querySelectorAll(".preset-chip").forEach(c => c.classList.remove("active"));
+      el.classList.add("active");
+    }
+
+    function updateEditorStats() {
+      const val = document.getElementById("questionInput").value.trim();
+      const lines = val ? val.split(/\r?\n/).filter(l => l.trim()).length : 0;
+      const words = val ? val.split(/\s+/).length : 0;
+      document.getElementById("lineCount").innerText = `${lines} lines detected`;
+      document.getElementById("wordCount").innerText = `${words} words`;
+    }
+
+    function loadSample() {
+      switchView("studio");
+      switchInputMode("text");
+      document.getElementById("questionInput").value = [
+        "Q1. What is overfitting in machine learning and how can it be prevented?",
+        "Q2. Explain the working mechanism of gradient descent optimization.",
+        "Q3. Differentiate between stemming and lemmatization in NLP.",
+        "Q4. How does overfitting occur in ML models, and what techniques reduce it?",
+        "Q5. Describe the self-attention mechanism used in Transformer architectures.",
+        "Q6. Compare stemming with lemmatization in natural language processing.",
+        "Q7. What is the bias-variance tradeoff in supervised learning?",
+        "Q8. How does the gradient descent algorithm minimize a loss function?",
+        "Q9. Explain TF-IDF weighting and its role in information retrieval.",
+        "Q10. What is Word2Vec and how does Skip-gram differ from CBOW?"
+      ].join("\n");
+      updateEditorStats();
+      showToast("Demo NLP paper loaded!");
+    }
+
+    // Drag & Drop
+    const dropzone = document.getElementById("dropzone");
+    const fileInput = document.getElementById("fileInput");
+    dropzone.addEventListener("dragover", e => { e.preventDefault(); dropzone.classList.add("dragover"); });
+    dropzone.addEventListener("dragleave", () => dropzone.classList.remove("dragover"));
+    dropzone.addEventListener("drop", e => {
+      e.preventDefault(); dropzone.classList.remove("dragover");
+      if (e.dataTransfer.files.length) selectFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener("change", e => { if (e.target.files.length) selectFile(e.target.files[0]); });
+
+    function selectFile(file) {
+      selectedFile = file;
+      document.getElementById("fileName").innerText = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+      document.getElementById("fileChip").classList.remove("hidden");
+    }
+
+    function clearFile() {
+      selectedFile = null;
+      fileInput.value = "";
+      document.getElementById("fileChip").classList.add("hidden");
+    }
+
+    function setPipelineStage(stage) {
+      for (let i = 1; i <= 4; i++) {
+        const el = document.getElementById(`step${i}`);
+        el.classList.remove("active", "done");
+        if (i < stage) el.classList.add("done");
+        else if (i === stage) el.classList.add("active");
+      }
+    }
+
+    async function runAnalysis() {
+      const btn = document.getElementById("analyzeBtn");
+      const threshold = parseFloat(document.getElementById("threshold").value);
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner"></span> Running NLP Pipeline...`;
+
+      try {
+        setPipelineStage(1);
+        let res, sourceLabel = "Pasted Text";
+
+        if (inputMode === "text") {
+          const text = document.getElementById("questionInput").value.trim();
+          if (!text) throw new Error("Please paste questions before analyzing.");
+          setPipelineStage(2);
+          res = await fetch(`${API_BASE}/analyze-text`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text, threshold })
+          });
+        } else {
+          if (!selectedFile) throw new Error("Please upload a .pdf, .docx, or .txt file.");
+          sourceLabel = selectedFile.name;
+          const fd = new FormData();
+          fd.append("file", selectedFile);
+          fd.append("threshold", threshold);
+          setPipelineStage(2);
+          res = await fetch(`${API_BASE}/analyze-file`, { method: "POST", body: fd });
+        }
+
+        setPipelineStage(3);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Analysis failed.");
+
+        setPipelineStage(5);
+        loadResults(data);
+        saveToHistory(sourceLabel, threshold, data);
+        showToast("Semantic analysis complete!");
+        switchView("duplicates");
+      } catch (err) {
+        setPipelineStage(0);
+        const msg = err.message === "Failed to fetch"
+          ? "Cannot reach FastAPI backend at 127.0.0.1:8000."
+          : err.message;
+        showToast(msg, true);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<span>🚀 Run Semantic Analysis</span>`;
+      }
+    }
+
+    function loadResults(data) {
+      currentData = data;
+      const rate = data.total_questions ? Math.round((data.duplicates_removed / data.total_questions) * 100) : 0;
+
+      document.getElementById("kpiTotal").innerText = data.total_questions;
+      document.getElementById("kpiPairs").innerText = data.duplicate_pairs.length;
+      document.getElementById("kpiUnique").innerText = data.unique_questions.length;
+      document.getElementById("kpiRate").innerText = `${rate}%`;
+
+      document.getElementById("badgePairs").innerText = data.duplicate_pairs.length;
+      document.getElementById("badgeUnique").innerText = data.unique_questions.length;
+
+      renderPairs();
+      renderCleaned();
+      renderCharts(data);
+    }
+
+    function renderPairs() {
+      const container = document.getElementById("pairsContainer");
+      if (!currentData || !currentData.duplicate_pairs.length) {
+        container.innerHTML = `<div class="empty-box">✅ No semantic duplicates detected at this threshold.</div>`;
+        return;
+      }
+
+      const q = document.getElementById("pairSearch").value.toLowerCase();
+      const sort = document.getElementById("pairSort").value;
+      let list = currentData.duplicate_pairs.filter(p =>
+        p.q1_text.toLowerCase().includes(q) || p.q2_text.toLowerCase().includes(q)
+      );
+
+      if (sort === "sim-desc") list.sort((a, b) => b.similarity - a.similarity);
+      else if (sort === "sim-asc") list.sort((a, b) => a.similarity - b.similarity);
+      else list.sort((a, b) => a.q1_index - b.q1_index);
+
+      container.innerHTML = list.map(p => {
+        const cls = p.similarity >= 85 ? "high" : p.similarity >= 70 ? "med" : "low";
+        const color = cls === "high" ? "var(--danger)" : cls === "med" ? "var(--warning)" : "var(--primary)";
+        return `
+          <div class="pair-card">
+            <div class="pair-header">
+              <span class="sim-pill ${cls}">${p.similarity}% Semantic Similarity</span>
+              <div class="bar-track"><div class="bar-fill" style="width:${p.similarity}%; background:${color};"></div></div>
+            </div>
+            <div class="diff-grid">
+              <div class="q-card">
+                <span class="q-meta">RETAINED · Q${p.q1_index}</span>
+                <div>${escapeHtml(p.q1_text)}</div>
+              </div>
+              <div class="q-card">
+                <span class="q-meta dup">FLAGGED DUPLICATE · Q${p.q2_index}</span>
+                <div>${escapeHtml(p.q2_text)}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderCleaned() {
+      const container = document.getElementById("cleanedContainer");
+      if (!currentData || !currentData.unique_questions.length) {
+        container.innerHTML = `<div class="empty-box">Run an analysis first to generate the cleaned question paper.</div>`;
+        return;
+      }
+      container.innerHTML = currentData.unique_questions.map((q, i) => `
+        <div class="paper-row">
+          <div class="q-num">Q${i + 1}</div>
+          <div>${escapeHtml(q)}</div>
+        </div>
+      `).join("");
+    }
+
+    function renderCharts(data) {
+      const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+      const textColor = isDark ? "#cbd5e1" : "#334155";
+      const gridColor = isDark ? "rgba(148,163,184,0.12)" : "rgba(15,23,42,0.08)";
+
+      if (compChart) compChart.destroy();
+      compChart = new Chart(document.getElementById("compChart"), {
+        type: "doughnut",
+        data: {
+          labels: ["Unique Questions", "Duplicates Removed"],
+          datasets: [{
+            data: [data.unique_questions.length, data.duplicates_removed],
+            backgroundColor: ["#10b981", "#f43f5e"],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false, cutout: "68%",
+          plugins: { legend: { position: "bottom", labels: { color: textColor, padding: 16 } } }
+        }
+      });
+
+      const buckets = [0, 0, 0, 0]; // 50-69, 70-79, 80-89, 90-100
+      data.duplicate_pairs.forEach(p => {
+        if (p.similarity >= 90) buckets[3]++;
+        else if (p.similarity >= 80) buckets[2]++;
+        else if (p.similarity >= 70) buckets[1]++;
+        else buckets[0]++;
+      });
+
+      if (distChart) distChart.destroy();
+      distChart = new Chart(document.getElementById("distChart"), {
+        type: "bar",
+        data: {
+          labels: ["50–69%", "70–79%", "80–89%", "90–100%"],
+          datasets: [{
+            label: "Duplicate Pairs",
+            data: buckets,
+            backgroundColor: ["#6366f1", "#06b6d4", "#f59e0b", "#f43f5e"],
+            borderRadius: 8
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: textColor }, grid: { display: false } },
+            y: { beginAtZero: true, ticks: { stepSize: 1, color: textColor }, grid: { color: gridColor } }
+          }
+        }
+      });
+    }
+
+    // History
+    function saveToHistory(source, threshold, data) {
+      const history = JSON.parse(localStorage.getItem("sc_history") || "[]");
+      history.unshift({
+        id: Date.now(),
+        time: new Date().toLocaleString(),
+        source,
+        threshold: Math.round(threshold * 100),
+        data
+      });
+      localStorage.setItem("sc_history", JSON.stringify(history.slice(0, 12)));
+      renderHistory();
+    }
+
+    function renderHistory() {
+      const history = JSON.parse(localStorage.getItem("sc_history") || "[]");
+      document.getElementById("badgeHistory").innerText = history.length;
+      const container = document.getElementById("historyContainer");
+      if (!history.length) {
+        container.innerHTML = `<div class="empty-box">No scan history yet. Run an analysis to save it here.</div>`;
+        return;
+      }
+      container.innerHTML = history.map((h, idx) => `
+        <div class="history-item">
+          <div>
+            <div style="font-weight:700;">${escapeHtml(h.source)}</div>
+            <div style="font-size:0.8rem; color:var(--text-muted); font-family:var(--font-mono);">
+              ${h.time} · Threshold ${h.threshold}% · ${h.data.total_questions} Qs · ${h.data.duplicate_pairs.length} pairs
+            </div>
+          </div>
+          <button class="btn" onclick="restoreHistory(${idx})">Load Report</button>
+        </div>
+      `).join("");
+    }
+
+    function restoreHistory(idx) {
+      const history = JSON.parse(localStorage.getItem("sc_history") || "[]");
+      if (history[idx]) {
+        loadResults(history[idx].data);
+        switchView("duplicates");
+        showToast("Restored scan from history");
+      }
+    }
+
+    function clearHistory() {
+      localStorage.removeItem("sc_history");
+      renderHistory();
+      showToast("History cleared");
+    }
+
+    // Exports
+    function copyCleaned() {
+      if (!currentData) return;
+      const txt = currentData.unique_questions.map((q, i) => `Q${i + 1}. ${q}`).join("\n");
+      navigator.clipboard.writeText(txt);
+      showToast("Cleaned paper copied to clipboard!");
+    }
+
+    function downloadTxt() {
+      if (!currentData) return;
+      const txt = currentData.unique_questions.map((q, i) => `Q${i + 1}. ${q}`).join("\n\n");
+      triggerDownload(txt, "cleaned_question_paper.txt", "text/plain");
+    }
+
+    function downloadJson() {
+      if (!currentData) return;
+      triggerDownload(JSON.stringify(currentData, null, 2), "semantic_analysis_report.json", "application/json");
+    }
+
+    function triggerDownload(content, filename, type) {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
+      showToast(`Downloaded ${filename}`);
+    }
+
+    function showToast(msg, isError = false) {
+      const t = document.getElementById("toast");
+      t.innerText = msg;
+      t.className = `toast show ${isError ? "error" : ""}`;
+      clearTimeout(window._t);
+      window._t = setTimeout(() => t.classList.remove("show"), 3200);
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, m => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      }[m]));
+    }
+  </script>
+</body>
+</html>
